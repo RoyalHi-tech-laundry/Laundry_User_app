@@ -2,13 +2,61 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../model/price_list_item.dart';
 
-class PriceListDetailsScreen extends StatelessWidget {
+class PriceListDetailsScreen extends StatefulWidget {
   final PriceListItem service;
 
   const PriceListDetailsScreen({
     super.key,
     required this.service,
   });
+
+  @override
+  State<PriceListDetailsScreen> createState() => _PriceListDetailsScreenState();
+}
+
+class _PriceListDetailsScreenState extends State<PriceListDetailsScreen> {
+  // Track expanded state for each category
+  final Map<String, bool> _expandedCategories = {};
+
+  @override
+  void initState() {
+    super.initState();
+    // Group items by type
+    _groupItemsByType();
+  }
+
+  final Map<String, List<Map<String, dynamic>>> _groupedItems = {};
+  final List<String> _categoryOrder = [];
+
+  void _groupItemsByType() {
+    // Clear previous data
+    _groupedItems.clear();
+    _categoryOrder.clear();
+
+    // Map to store display names for each type
+    final typeDisplayNames = {
+      'MEN': 'Men',
+      'WOMEN': 'Women',
+      'KIDS': 'Kids',
+      'MEN_LUXURY': 'Men (Luxury)',
+      'WOMEN_LUXURY': 'Women (Luxury)',
+      'HOUSEHOLD': 'Household',
+      'HOUSEHOLD_LUXURY': 'Household (Luxury)',
+    };
+
+    // Group items by type
+    for (var item in widget.service.items) {
+      final type = item['type'] ?? 'OTHER';
+      final displayName = typeDisplayNames[type] ?? type.replaceAll('_', ' ');
+      
+      if (!_groupedItems.containsKey(displayName)) {
+        _groupedItems[displayName] = [];
+        _categoryOrder.add(displayName);
+        _expandedCategories[displayName] = false; // Collapsed by default
+      }
+      _groupedItems[displayName]!.add(item);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +91,7 @@ class PriceListDetailsScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    service.name,
+                    widget.service.name,
                     style: GoogleFonts.poppins(
                       fontSize: 22,
                       fontWeight: FontWeight.w600,
@@ -52,9 +100,9 @@ class PriceListDetailsScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  if (service.description.isNotEmpty)
+                  if (widget.service.description.isNotEmpty)
                     Text(
-                      service.description,
+                      widget.service.description,
                       style: GoogleFonts.poppins(
                         fontSize: 14,
                         color: const Color(0xFF5F6368),
@@ -65,48 +113,91 @@ class PriceListDetailsScreen extends StatelessWidget {
               ),
             ),
             
-            // Price List Items
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
-              ),
-              child: ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: service.items.length,
-                separatorBuilder: (context, index) => const Divider(height: 1, color: Color(0xFFEEEEEE)),
-                itemBuilder: (context, index) {
-                  final item = service.items[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            item['name'] ?? 'Item',
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              color: const Color(0xFF202124),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          '₹${(item['price'] ?? 0).toStringAsFixed(0)}',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF202124),
-                          ),
-                        ),
-                      ],
+            // Grouped Price List Items
+            ..._categoryOrder.map((category) {
+              final items = _groupedItems[category] ?? [];
+              final isExpanded = _expandedCategories[category] ?? false;
+              
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
                     ),
-                  );
-                },
-              ),
-            ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Category Header
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _expandedCategories[category] = !isExpanded;
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              category,
+                              style: GoogleFonts.poppins(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF202124),
+                              ),
+                            ),
+                            Icon(
+                              isExpanded ? Icons.remove : Icons.add,
+                              color: const Color(0xFF1A73E8),
+                              size: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    
+                    // Items List (conditionally shown)
+                    if (isExpanded) ...[
+                      const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                      ...items.map((item) => Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                item['name']?.toString() ?? 'Item',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  color: const Color(0xFF5F6368),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '₹${(item['price'] ?? 0).toStringAsFixed(0)}',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF5F6368),
+                              ),
+                            ),
+                            ],
+                          ),
+                        )).toList(),
+                    ],
+                  ],
+                ),
+              );
+            }),
             
             const SizedBox(height: 24),
             
