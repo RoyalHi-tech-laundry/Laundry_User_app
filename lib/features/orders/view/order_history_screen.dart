@@ -186,7 +186,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with SingleTick
     }
 
     return RefreshIndicator(
-      onRefresh: () => _viewModel.loadOrders(refresh: true),
+      onRefresh: () => _viewModel.loadOrders(),
       color: const Color(0xFF2196F3),
       child: ListView.builder(
         padding: const EdgeInsets.all(16),

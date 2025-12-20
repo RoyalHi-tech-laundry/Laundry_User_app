@@ -2,20 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:laun_easy/features/orders/view/order_history_screen.dart';
+import 'package:laun_easy/features/address/view/address_list_screen.dart';
 import '../../../constants/colors/app_colors.dart';
 import 'AccountTab/personal_info_screen.dart';
+import '../../../core/utils/dialog_utils.dart';
 
 class AccountScreen extends StatelessWidget {
   const AccountScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return const AccountScreenContent();
+    return AccountScreenContent(
+      onLogoutPressed: () => DialogUtils.showLogoutConfirmation(context),
+    );
   }
 }
 
 class AccountScreenContent extends StatelessWidget {
-  const AccountScreenContent({Key? key}) : super(key: key);
+  final VoidCallback onLogoutPressed;
+
+  const AccountScreenContent({Key? key, required this.onLogoutPressed}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +80,14 @@ class AccountScreenContent extends StatelessWidget {
             _buildMenuItem(
               icon: Icons.location_on_outlined,
               title: 'Address Book',
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AddressListScreen(),
+                  ),
+                );
+              },
             ),
             _buildDivider(),
             _buildMenuItem(
@@ -156,34 +169,38 @@ class AccountScreenContent extends StatelessWidget {
     );
   }
 
-  static Widget _buildLogoutButton() {
+  Widget _buildLogoutButton() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        width: double.infinity,
-        height: 50,
-        decoration: BoxDecoration(
-          border: Border.all(color: AppColors.primaryLightColor),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.logout,
-              color: AppColors.primaryLightColor,
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Log Out',
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+      child: InkWell(
+        onTap: onLogoutPressed,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: double.infinity,
+          height: 50,
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.primaryLightColor),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.logout,
                 color: AppColors.primaryLightColor,
+                size: 20,
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Text(
+                'Log Out',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.primaryLightColor,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     ).animate()

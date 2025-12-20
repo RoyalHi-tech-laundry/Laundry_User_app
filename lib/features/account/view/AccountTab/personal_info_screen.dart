@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../constants/colors/app_colors.dart';
+import '../../../../services/auth_storage_service.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
   const PersonalInfoScreen({Key? key}) : super(key: key);
@@ -26,12 +28,34 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize controllers with current data
-    _userNameController.text = "Nithya";
-    _phoneController.text = "9677406282";
-    _emailController.text = "";
-    _dateOfBirthController.text = "";
-    _selectedGender = "Female";
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final userData = await AuthStorageService.getUserDetails();
+      if (mounted) {
+        setState(() {
+          _userNameController.text = userData['name'] ?? '';
+          _phoneController.text = userData['phone'] ?? '';
+          _emailController.text = userData['email'] ?? '';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load user data')),
+        );
+      }
+    }
   }
 
   @override
@@ -71,14 +95,16 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           ),
         ),
       ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                 _buildEditableField(
                   label: 'User Name *',
                   controller: _userNameController,
@@ -116,11 +142,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                 if (!_isEditMode) _buildDeleteAccountButton(),
                 const SizedBox(height: 24),
                 _buildActionButton(),
-              ],
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -509,42 +535,36 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   }
 
 
-  void _savePersonalInfo() async {
+  Future<void> _savePersonalInfo() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
       });
 
       try {
-        // Simulate API call
-        await Future.delayed(const Duration(seconds: 2));
+        // Get the current user data
+        final userData = await AuthStorageService.getUserDetails();
         
-        // Here you would make the actual API call
-        // Example:
-        // await ApiService.updatePersonalInfo({
-        //   'userName': _userNameController.text,
-        //   'phoneNumber': _phoneController.text,
-        //   'emailId': _emailController.text,
-        //   'dateOfBirth': _dateOfBirthController.text,
-        //   'gender': _selectedGender,
-        // });
-
+        // Update user data in SharedPreferences
+        await AuthStorageService.saveUserDetails(
+          id: userData['id'] ?? 0,
+          name: _userNameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          email: _emailController.text.trim(),
+          role: userData['role'] ?? 'user',
+        );
+        
+        // Update UI state
         setState(() {
           _isEditMode = false;
           _isLoading = false;
         });
 
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Personal information updated successfully!',
-              style: GoogleFonts.poppins(color: Colors.white),
-            ),
-            backgroundColor: AppColors.successColor,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile updated successfully')),
+          );
+        }
       } catch (e) {
         setState(() {
           _isLoading = false;

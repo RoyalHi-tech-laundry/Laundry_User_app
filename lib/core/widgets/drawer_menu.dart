@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../constants/colors/app_colors.dart';
-import '../../features/auth/view/login_screen.dart';
-import '../../services/auth_storage_service.dart';
+import '../utils/dialog_utils.dart';
 
 class DrawerMenu extends StatelessWidget {
   const DrawerMenu({super.key});
@@ -127,58 +126,8 @@ class DrawerMenu extends StatelessWidget {
 
   // Handle logout action
   void _handleLogout(BuildContext context) {
-    // Show confirmation dialog
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Logout',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: Text(
-          'Are you sure you want to logout?',
-          style: GoogleFonts.poppins(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.poppins(
-                color: Colors.grey,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () async {
-              // Clear auth data
-              await AuthStorageService.clearAuthData();
-              
-              // Close drawer and dialog
-              Navigator.pop(context);
-              Navigator.pop(context);
-              
-              // Navigate to login screen
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-                (route) => false,
-              );
-            },
-            child: Text(
-              'Logout',
-              style: GoogleFonts.poppins(
-                color: AppColors.primaryColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    // Show confirmation dialog using the reusable utility
+    DialogUtils.showLogoutConfirmation(context);
   }
   
   Widget _buildMenuItem({

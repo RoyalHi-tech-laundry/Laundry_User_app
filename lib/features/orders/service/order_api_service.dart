@@ -17,40 +17,59 @@ class OrderApiService {
     };
   }
 
-  // GET: Fetch all orders for the logged-in user
-  Future<OrderList> getOrders({int page = 1, int size = 10}) async {
-    debugPrint('🔵 API Call: GET $baseUrl/api/orders?page=$page&size=$size');
+  // Fetch all orders for the logged-in user
+  Future<OrderList> getOrders() async {
+    const url = '/api/users/order';
+    debugPrint('\n📡 API Request:');
+    debugPrint('URL: $baseUrl$url');
     
     try {
       final headers = await _getHeaders();
-      debugPrint('🔵 Headers: $headers');
-      final url = Uri.parse('$baseUrl/api/orders?page=$page&size=$size');
+      debugPrint('🔑 Headers: $headers');
       
-      final response = await http.get(url, headers: headers);
-      debugPrint('🔵 Response Status: ${response.statusCode}');
+      final response = await http.get(
+        Uri.parse('$baseUrl$url'),
+        headers: headers,
+      );
+      
+      debugPrint('\n📡 API Response:');
+      debugPrint('Status: ${response.statusCode}');
+      debugPrint('Body: ${response.body}');
       
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
-        debugPrint('🔵 Response Body: ${response.body}');
-        return OrderList.fromJson(jsonResponse);
+        
+        debugPrint('\n📊 Response Summary:');
+        debugPrint('Success: ${jsonResponse['success']}');
+        if (jsonResponse['data'] is List) {
+          final orders = jsonResponse['data'] as List;
+          debugPrint('Number of orders: ${orders.length}');
+          if (orders.isNotEmpty) {
+            debugPrint('First order details:');
+            debugPrint(jsonEncode(orders[0]));
+          }
+        }
+        
+        // Convert to OrderList with empty pagination
+        return OrderList(
+          success: jsonResponse['success'] ?? false,
+          data: (jsonResponse['data'] as List? ?? [])
+              .map((item) => Order.fromJson(item))
+              .toList(),
+          pagination: Pagination(
+            total: jsonResponse['data']?.length ?? 0,
+            page: 1,
+            size: jsonResponse['data']?.length ?? 0,
+            totalPages: 1,
+          ),
+        );
       } else {
         debugPrint('🔴 Error: ${response.statusCode} - ${response.body}');
         throw Exception('Failed to load orders: ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('🔴 Exception: ${e.toString()}');
-      
-      // Return empty response for development/testing
-      return OrderList.fromJson({
-        'success': false,
-        'data': [],
-        'pagination': {
-          'total': 0,
-          'page': page,
-          'size': size,
-          'totalPages': 0
-        }
-      });
+      rethrow; // Re-throw to see the actual error in the console
     }
   }
 
