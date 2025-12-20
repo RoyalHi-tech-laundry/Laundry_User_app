@@ -3,11 +3,17 @@ import 'package:laun_easy/constants/colors/app_colors.dart';
 import 'package:laun_easy/features/address/model/address_model.dart';
 import 'package:laun_easy/services/place_search_service.dart';
 import 'package:laun_easy/features/address/view_model/address_selection_viewmodel.dart';
+import 'package:laun_easy/features/address/view_model/address_submission_viewmodel.dart';
 import 'package:laun_easy/features/address/view/address_details_sheet.dart';
 import 'package:laun_easy/features/address/view/map_view.dart';
 
 class AddressSelectionScreen extends StatefulWidget {
-  const AddressSelectionScreen({super.key});
+  final bool isFirstTimeSignup;
+  
+  const AddressSelectionScreen({
+    super.key,
+    this.isFirstTimeSignup = false,
+  });
 
   @override
   State<AddressSelectionScreen> createState() => _AddressSelectionScreenState();
@@ -15,6 +21,7 @@ class AddressSelectionScreen extends StatefulWidget {
 
 class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
   late AddressSelectionViewModel _viewModel;
+  bool _addressAddedSuccessfully = false; // Flag to track if an address was added successfully
 
   @override
   void initState() {
@@ -105,23 +112,81 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
         child: AddressDetailsSheet(
           viewModel: _viewModel,
           onSaveAddress: _onSaveAddress,
+          isFirstTimeSignup: widget.isFirstTimeSignup,
         ),
       ),
     );
   }
 
-  void _onSaveAddress(Address address) {
-    // Use the new method that saves address and navigates to home screen
-    _viewModel.saveAddressAndNavigateToHome(context);
-    //   context,
-    //   MaterialPageRoute(builder: (context) => HomeScreen()),
-    //   (route) => false,
-    // );
+  Future<void> _onSaveAddress(Address address) async {
+    print('📍 DEBUG: _onSaveAddress called with address: ${address.toString()}');
+    print('📍 DEBUG: isFirstTimeSignup = ${widget.isFirstTimeSignup}');
+    
+    if (widget.isFirstTimeSignup) {
+      // For first-time signup, the _saveAddress method in AddressDetailsSheet will handle navigation
+      print('📍 DEBUG: First-time signup scenario in _onSaveAddress - no action needed');
+      // No need to do anything here as saveAddressAndNavigateToHome will be called directly
+    } else {
+      // For regular address addition, we need to submit the address to the API
+      print('📍 DEBUG: Regular address addition scenario in _onSaveAddress');
+      try {
+        // Create submission view model
+        final submissionViewModel = AddressSubmissionViewModel();
+        
+        // Extract state and country from the location details
+        final locationParts = _viewModel.locationDetailsController.text.split(', ');
+        String state = '';
+        String country = 'India'; // Default to India
+        
+        if (locationParts.length >= 2) {
+          // Assume second-to-last part is state if we have enough parts
+          state = locationParts[locationParts.length - 2];
+        }
+        
+        if (locationParts.length >= 3) {
+          // Assume last part is country if we have enough parts
+          country = locationParts[locationParts.length - 1];
+        }
+        
+        print('📍 DEBUG: Submitting address to API from _onSaveAddress');
+        // Submit address to API
+        final success = await submissionViewModel.submitAddressFromModel(
+          address,
+          addressLine1: _viewModel.houseNumberController.text,
+          addressLine2: _viewModel.streetController.text,
+          state: state,
+          country: country,
+          isDefault: false, // Set default as needed
+        );
+        print('📍 DEBUG: Address submitted to API successfully, result: $success');
+        
+        // Set a flag to ensure the address list is refreshed when returning
+        // This will be used when the address details sheet is closed
+        _addressAddedSuccessfully = true;
+      } catch (e) {
+        print('📍 DEBUG: Error submitting address to API: ${e.toString()}');
+        // Error will be shown by the AddressDetailsSheet
+      }
+    }
+  }
+
+  // Handle back button press
+  Future<bool> _onWillPop() async {
+    print('📍 DEBUG: _onWillPop called, _addressAddedSuccessfully = $_addressAddedSuccessfully');
+    // If an address was added successfully, return true to trigger a refresh in the address list screen
+    if (_addressAddedSuccessfully) {
+      print('📍 DEBUG: Returning true from _onWillPop to trigger refresh');
+      Navigator.of(context).pop(true);
+      return false; // Don't pop again
+    }
+    return true; // Allow normal back button behavior
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
       body: Stack(
         children: [
           // Map view
@@ -686,6 +751,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           ),
         ],
       ),
+      ),
     );
   }
   
@@ -749,6 +815,12 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
   
   @override
   void dispose() {
+    print('📍 DEBUG: AddressSelectionScreen dispose called, _addressAddedSuccessfully = $_addressAddedSuccessfully');
+    // If an address was added successfully, return true to trigger a refresh in the address list screen
+    if (_addressAddedSuccessfully && Navigator.canPop(context)) {
+      print('📍 DEBUG: Returning true to trigger refresh');
+      Navigator.of(context).pop(true);
+    }
     _viewModel.dispose();
     super.dispose();
   }

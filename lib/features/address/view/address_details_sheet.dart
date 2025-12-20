@@ -3,15 +3,18 @@ import 'package:laun_easy/constants/colors/app_colors.dart';
 import 'package:laun_easy/features/address/model/address_model.dart';
 import 'package:laun_easy/features/address/view_model/address_selection_viewmodel.dart';
 import 'package:laun_easy/features/address/view/address_type_selector.dart';
+import 'package:laun_easy/core/navigation/main_navigation.dart';
 
 class AddressDetailsSheet extends StatefulWidget {
   final AddressSelectionViewModel viewModel;
   final Function(Address) onSaveAddress;
+  final bool isFirstTimeSignup;
 
   const AddressDetailsSheet({
     super.key,
     required this.viewModel,
     required this.onSaveAddress,
+    this.isFirstTimeSignup = false,
   });
 
   @override
@@ -42,30 +45,115 @@ class _AddressDetailsSheetState extends State<AddressDetailsSheet> {
   }
 
   Future<void> _saveAddress() async {
-    if (!widget.viewModel.isFormValid) return;
+    print('📍 DEBUG: _saveAddress method called');
+    
+    // Use different validation logic for first-time signup
+    bool isValid = widget.isFirstTimeSignup 
+        ? widget.viewModel.isFormValidForSignup 
+        : widget.viewModel.isFormValid;
+    
+    if (!isValid) {
+      print('📍 DEBUG: Form is not valid, cannot save address');
+      // Get specific validation error message
+      String errorMessage = widget.viewModel.getValidationError() ?? 'Please fill in all required fields';
+      print('📍 DEBUG: Validation error: $errorMessage');
+      
+      // Show error message to user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
+    // If we're in first-time signup and some fields are empty, pre-fill them with defaults
+    if (widget.isFirstTimeSignup) {
+      if (widget.viewModel.houseNumberController.text.isEmpty) {
+        widget.viewModel.houseNumberController.text = 'Not specified';
+      }
+      if (widget.viewModel.streetController.text.isEmpty) {
+        widget.viewModel.streetController.text = 'Not specified';
+      }
+      if (widget.viewModel.landmarkController.text.isEmpty) {
+        widget.viewModel.landmarkController.text = 'Not specified';
+      }
+    }
     
     // Show loading indicator
     setState(() {
       _isLoading = true;
     });
+    print('📍 DEBUG: Showing loading indicator, _isLoading = $_isLoading');
     
     try {
-      // Create address object
-      final address = widget.viewModel.saveAddress();
+      print('📍 DEBUG: Creating address object');
+      // Create address object with appropriate validation level
+      final address = widget.viewModel.saveAddress(isFirstTimeSignup: widget.isFirstTimeSignup);
+      print('📍 DEBUG: Address object created successfully');
       
-      // Call the onSaveAddress callback (which should save to API)
-      await widget.onSaveAddress(address);
-      
-      // Don't hide loading indicator here - keep it visible
-      // The navigation will happen in showSuccessAndNavigateBack
-      
-      // Show success message and navigate back to address list screen
-      widget.viewModel.showSuccessAndNavigateBack(context);
+      if (widget.isFirstTimeSignup) {
+        print('📍 DEBUG: First-time signup scenario - calling saveAddressAndNavigateToHome directly');
+        try {
+          // For first-time signup, call saveAddressAndNavigateToHome directly
+          // This will navigate to the home screen regardless of API result
+          await widget.viewModel.saveAddressAndNavigateToHome(context);
+          print('📍 DEBUG: saveAddressAndNavigateToHome completed successfully');
+          // No need to hide loading indicator as we're navigating away
+          
+          // Add a failsafe navigation in case the previous one didn't work
+          print('📍 DEBUG: Adding failsafe navigation to ensure we reach home screen');
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => const MainNavigation()),
+                (route) => false, // Remove all previous routes
+              );
+            }
+          });
+        } catch (e) {
+          print('📍 DEBUG: Error in saveAddressAndNavigateToHome: ${e.toString()}');
+          // Try direct navigation as a fallback
+          print('📍 DEBUG: Attempting direct navigation as fallback');
+          try {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => const MainNavigation()),
+              (route) => false, // Remove all previous routes
+            );
+            print('📍 DEBUG: Fallback navigation completed');
+          } catch (navError) {
+            print('📍 DEBUG: Fallback navigation failed: ${navError.toString()}');
+            // Hide loading indicator and show error
+            setState(() {
+              _isLoading = false;
+            });
+            // Show error message
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error navigating to home: ${e.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } else {
+        print('📍 DEBUG: Regular address addition scenario');
+        // For regular address addition, call onSaveAddress callback
+        await widget.onSaveAddress(address);
+        print('📍 DEBUG: onSaveAddress callback completed');
+        
+        // Show success message and navigate back
+        // This will hide the loading indicator
+        widget.viewModel.showSuccessAndNavigateBack(context);
+      }
     } catch (e) {
+      print('📍 DEBUG: Error saving address: ${e.toString()}');
       // Hide loading indicator and show error
       setState(() {
         _isLoading = false;
       });
+      print('📍 DEBUG: Loading indicator hidden due to error');
       
       // Show error message
       ScaffoldMessenger.of(context).showSnackBar(

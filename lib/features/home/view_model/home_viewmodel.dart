@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import '../../cart/model/service_model.dart';
 import '../../cart/service/cart_service.dart';
 import '../../../services/auth_storage_service.dart';
+import '../../address/service/address_service.dart';
+import '../../address/model/address_list_model.dart';
 
 class HomeViewModel extends ChangeNotifier {
   final CartService _cartService = CartService();
@@ -25,31 +27,83 @@ class HomeViewModel extends ChangeNotifier {
   Future<void> loadUserData() async {
     _setLoading(true);
     try {
-      // Load user details from storage first
+      // Load user details and last selected address first
       final userDetails = await AuthStorageService.getUserDetails();
       _userName = userDetails['name'] ?? 'Guest';
-      
-      // Try to load last selected address from SharedPreferences
       final lastSelectedAddress = await AuthStorageService.getLastSelectedAddress();
       
-      if (lastSelectedAddress != null && lastSelectedAddress.isNotEmpty) {
-        final parts = lastSelectedAddress.split('||');
-        if (parts.length >= 5) {
-          // Create a simple map with address details to display
-          _currentAddress = {
-            'id': parts[0],
-            'type': parts[1],
-            'fullAddress': parts[2],
-            'latitude': double.tryParse(parts[3]) ?? 0.0,
-            'longitude': double.tryParse(parts[4]) ?? 0.0,
+      // Load user's saved addresses
+      final addressService = AddressService();
+      try {
+        final addressList = await addressService.getAddresses();
+        final userAddresses = addressList.data;
+
+        // Variable to store the selected address
+        Map<String, dynamic>? selectedAddress;
+
+        // If we have a last selected address, try to use it
+        if (lastSelectedAddress != null && lastSelectedAddress.isNotEmpty) {
+          final parts = lastSelectedAddress.split('||');
+          if (parts.length >= 5) {
+            final addressId = parts[0];
+            
+            // Check if this address still exists in the user's address list
+            final addressExists = userAddresses.any((addr) => addr.id.toString() == addressId);
+            
+            if (addressExists) {
+              // Use the last selected address
+              selectedAddress = {
+                'id': parts[0],
+                'type': parts[1],
+                'fullAddress': parts[2],
+                'latitude': double.tryParse(parts[3]) ?? 0.0,
+                'longitude': double.tryParse(parts[4]) ?? 0.0,
+              };
+            }
+          }
+        }
+        
+        // If no valid last selected address, but we have addresses, use the first one
+        if (selectedAddress == null && userAddresses.isNotEmpty) {
+          final defaultAddress = userAddresses.first;
+          selectedAddress = {
+            'id': defaultAddress.id.toString(),
+            'type': defaultAddress.type,
+            'fullAddress': defaultAddress.formattedAddress,
+            'latitude': defaultAddress.latitude,
+            'longitude': defaultAddress.longitude,
           };
+          
+          // Save as last selected address for future use
+          await AuthStorageService.saveLastSelectedAddress(
+            '${defaultAddress.id}||${defaultAddress.type}||${defaultAddress.formattedAddress}||${defaultAddress.latitude}||${defaultAddress.longitude}'
+          );
+        }
+        
+        // Set the current address if we found one
+        _currentAddress = selectedAddress;
+        
+      } catch (e) {
+        debugPrint('Error loading addresses: $e');
+        // If we can't load addresses but have a last selected address, use it
+        if (lastSelectedAddress != null && lastSelectedAddress.isNotEmpty) {
+          final parts = lastSelectedAddress.split('||');
+          if (parts.length >= 5) {
+            _currentAddress = {
+              'id': parts[0],
+              'type': parts[1],
+              'fullAddress': parts[2],
+              'latitude': double.tryParse(parts[3]) ?? 0.0,
+              'longitude': double.tryParse(parts[4]) ?? 0.0,
+            };
+          }
         }
       }
       
-      // If no last selected address, set to unknown
+      // If still no address, set to unknown
       if (_currentAddress == null) {
         _currentAddress = {
-          'fullAddress': 'Unknown - Please select address',
+          'fullAddress': 'Please add an address',
           'type': 'unknown'
         };
       }

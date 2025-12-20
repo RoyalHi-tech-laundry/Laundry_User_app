@@ -162,7 +162,7 @@ class OtpVerificationViewModel with ChangeNotifier {
         // If coming from registration, go to address screen
         // Use pushAndRemoveUntil to clear the entire navigation stack
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const AddressSelectionScreen()),
+          MaterialPageRoute(builder: (context) => const AddressSelectionScreen(isFirstTimeSignup: true)),
           (route) => false, // Remove all previous routes
         );
       } else {

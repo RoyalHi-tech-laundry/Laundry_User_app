@@ -12,7 +12,7 @@ class AddressListViewModel extends ChangeNotifier {
   Future<void> navigateToAddressSelectionScreen(BuildContext context) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const AddressSelectionScreen()),
+      MaterialPageRoute(builder: (context) => const AddressSelectionScreen(isFirstTimeSignup: false)),
     );
     
     // Always reload addresses when returning from address selection screen
