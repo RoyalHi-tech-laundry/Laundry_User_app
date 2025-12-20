@@ -3,9 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/services.dart';
 import '../../constants/colors/app_colors.dart';
+import 'package:provider/provider.dart';
 import '../../features/home/view/home_screen.dart';
 import '../../features/account/view/account_screen.dart';
 import '../../features/orders/view/order_history_screen.dart';
+import '../../features/price_list/view/price_list_screen.dart';
+import '../../features/price_list/view_model/price_list_view_model.dart';
 import '../../utils/app_router.dart';
 import '../widgets/drawer_menu.dart';
 
@@ -198,33 +201,15 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 }
 
-// Placeholder screens for other tabs
+// Price List Screen (previously ChecklistScreen)
 class ChecklistScreen extends StatelessWidget {
   const ChecklistScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        title: Text(
-          'Checklist',
-          style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
-        ),
-      ),
-      body: const Center(
-        child: Text(
-          'Checklist Screen',
-          style: TextStyle(fontSize: 18),
-        ),
-      ),
+    return ChangeNotifierProvider(
+      create: (context) => PriceListViewModel(),
+      child: const PriceListScreen(),
     );
   }
 }
