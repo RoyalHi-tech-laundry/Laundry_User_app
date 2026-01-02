@@ -69,6 +69,9 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     return address.fullAddress ?? 'Unknown';
   }
 
+  // State for the selected service popup
+  Map<String, dynamic>? _selectedServiceData;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -145,6 +148,131 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
         ],
       ),
     );
+  }
+
+  Widget _buildServiceDetailsPanel() {
+    final data = _selectedServiceData!;
+    return Container(
+      margin: const EdgeInsets.only(top: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE3F2FD), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2196F3).withOpacity(0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF5F9FF),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  data['icon'] as IconData,
+                  size: 20,
+                  color: const Color(0xFF1976D2),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    data['title'] as String,
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF0D47A1),
+                    ),
+                  ),
+                ),
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedServiceData = null;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.blue[100]!),
+                    ),
+                    child: Icon(Icons.close, size: 16, color: Colors.blue[300]),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Body
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  data['description'] as String,
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: const Color(0xFF546E7A),
+                    height: 1.6,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: ElevatedButton(
+                    onPressed: () {
+                       setState(() {
+                         _selectedServiceData = null;
+                       });
+                       // TODO: Navigation to specific booking flow
+                       ScaffoldMessenger.of(context).showSnackBar(
+                         SnackBar(content: Text('Starting booking for ${data['title']}...'))
+                       );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2196F3), // Primary Blue
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.calendar_today_outlined, size: 18, color: Colors.white),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Book This Service',
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.05, end: 0, duration: 300.ms, curve: Curves.easeOut);
   }
 
   Widget _buildHeader() {
@@ -250,22 +378,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                   ),
                 ],
               ),
-              TextButton.icon(
-                onPressed: () {},
-                icon: Icon(
-                  Icons.arrow_forward,
-                  size: 16,
-                  color: Colors.blue[700],
-                ),
-                label: Text(
-                  'View All',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.blue[700],
-                  ),
-                ),
-              ),
+// Replaced by text hint
             ],
           ),
         ).animate().fadeIn(duration: 400.ms),
@@ -279,6 +392,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
               : ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: _viewModel.services.length,
+                  padding: const EdgeInsets.symmetric(horizontal: 4), // Add padding to avoid clip
                   separatorBuilder: (context, index) => const SizedBox(width: 12),
                   itemBuilder: (context, index) {
                     final service = _viewModel.services[index];
@@ -286,14 +400,40 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                       icon: _getIconData(service.icon),
                       title: service.name,
                       onTap: () {
-                        // Navigate to service details or add to cart
+                        // If clicking same service, toggle it off. Else open it.
+                        if (_selectedServiceData != null && _selectedServiceData!['title'] == service.name) {
+                          setState(() {
+                             _selectedServiceData = null;
+                          });
+                        } else {
+                          _showServiceDetails(service.name, service.description, _getIconData(service.icon));
+                        }
                       },
                     );
                   },
                 ),
         ),
+        
+        // Inline Details Panel with Animation
+        AnimatedSize(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOutQuart,
+          child: _selectedServiceData != null 
+             ? _buildServiceDetailsPanel()
+             : const SizedBox.shrink(),
+        ),
       ],
     );
+  }
+
+  void _showServiceDetails(String title, String description, IconData icon) {
+     setState(() {
+       _selectedServiceData = {
+         'title': title,
+         'description': description.isNotEmpty ? description : "Experience our premium ${title.toLowerCase()} service.",
+         'icon': icon,
+       };
+     });
   }
   
   // Helper method to convert icon string to IconData
