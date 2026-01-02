@@ -28,6 +28,8 @@ class Order {
   final String pickupTimeSlot;
   final double totalAmount;
   final DateTime createdAt;
+  final List<OrderItem>? items;
+  final dynamic address; // Can be Map or specific Address model if known
 
   Order({
     required this.id,
@@ -37,17 +39,36 @@ class Order {
     required this.pickupTimeSlot,
     required this.totalAmount,
     required this.createdAt,
+    this.items,
+    this.address,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
+    List<OrderItem>? parsedItems;
+    if (json['items'] != null && json['items'] is List) {
+      parsedItems = (json['items'] as List)
+          .map((i) => OrderItem.fromJson(i))
+          .toList();
+    } else if (json['orderItems'] != null && json['orderItems'] is List) {
+       parsedItems = (json['orderItems'] as List)
+          .map((i) => OrderItem.fromJson(i))
+          .toList();
+    }
+
     return Order(
       id: json['id'],
-      orderNumber: json['orderNumber'],
-      status: _getOrderStatusFromString(json['status']),
-      pickupDate: DateTime.parse(json['pickupDate']),
-      pickupTimeSlot: json['pickupTimeSlot'],
-      totalAmount: json['totalAmount'].toDouble(),
-      createdAt: DateTime.parse(json['createdAt']),
+      orderNumber: json['orderNumber'] ?? '',
+      status: _getOrderStatusFromString(json['status'] ?? 'PENDING'),
+      pickupDate: json['pickupDate'] != null 
+          ? DateTime.parse(json['pickupDate']) 
+          : DateTime.now(),
+      pickupTimeSlot: json['pickupTimeSlot'] ?? '',
+      totalAmount: (json['totalAmount'] ?? 0).toDouble(),
+      createdAt: json['createdAt'] != null 
+          ? DateTime.parse(json['createdAt']) 
+          : DateTime.now(),
+      items: parsedItems,
+      address: json['address'],
     );
   }
 
@@ -132,6 +153,8 @@ class Order {
     String? pickupTimeSlot,
     double? totalAmount,
     DateTime? createdAt,
+    List<OrderItem>? items,
+    dynamic address,
   }) {
     return Order(
       id: id ?? this.id,
@@ -141,6 +164,8 @@ class Order {
       pickupTimeSlot: pickupTimeSlot ?? this.pickupTimeSlot,
       totalAmount: totalAmount ?? this.totalAmount,
       createdAt: createdAt ?? this.createdAt,
+      items: items ?? this.items,
+      address: address ?? this.address,
     );
   }
 }
@@ -160,10 +185,39 @@ class Pagination {
 
   factory Pagination.fromJson(Map<String, dynamic> json) {
     return Pagination(
-      total: json['total'],
-      page: json['page'],
-      size: json['size'],
-      totalPages: json['totalPages'],
+      total: json['total'] ?? 0,
+      page: json['page'] ?? 1,
+      size: json['size'] ?? 10,
+      totalPages: json['totalPages'] ?? 1,
+    );
+  }
+}
+
+class OrderItem {
+  final String name;
+  final int quantity;
+  final double price;
+  final double? tax;
+
+  OrderItem({
+    required this.name,
+    required this.quantity,
+    required this.price,
+    this.tax,
+  });
+
+  factory OrderItem.fromJson(Map<String, dynamic> json) {
+    // Attempt to handle different JSON structures
+    String name = 'Unknown Item';
+    if (json['serviceName'] != null) name = json['serviceName'];
+    if (json['name'] != null) name = json['name'];
+    if (json['service'] != null && json['service'] is Map)  name = json['service']['name'] ?? 'Unknown Item';
+
+    return OrderItem(
+      name: name,
+      quantity: json['quantity'] ?? 1,
+      price: (json['price'] ?? json['unitPrice'] ?? 0).toDouble(),
+      tax: json['tax'] != null ? (json['tax']).toDouble() : null,
     );
   }
 }

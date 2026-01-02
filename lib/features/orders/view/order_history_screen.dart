@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../constants/colors/app_colors.dart';
 import '../model/order_model.dart';
 import '../view_model/order_view_model.dart';
+import 'order_details_screen.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
   const OrderHistoryScreen({Key? key}) : super(key: key);
@@ -612,7 +613,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with SingleTick
       onRefresh: () => _viewModel.loadOrders(),
       color: const Color(0xFF2196F3),
       child: ListView.builder(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
         itemCount: filteredOrders.length,
         itemBuilder: (context, index) {
           final order = filteredOrders[index];
@@ -783,8 +784,12 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with SingleTick
                   // View Details button
                   TextButton(
                     onPressed: () {
-                      // View order details
-                      // Navigator.pushNamed(context, '/order-details', arguments: order);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => OrderDetailsScreen(orderId: order.id),
+                        ),
+                      );
                     },
                     child: Text(
                       'View Details',
@@ -801,8 +806,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with SingleTick
           ),
         ),
       ),
-    ).animate(delay: Duration(milliseconds: 100 * index))
-        .fadeIn(duration: 400.ms)
-        .slideY(begin: 0.2, end: 0, duration: 400.ms);
+    ).animate()
+        .fadeIn(duration: 300.ms)
+        .slideY(begin: 0.1, end: 0, duration: 300.ms, curve: Curves.easeOut);
   }
 }
