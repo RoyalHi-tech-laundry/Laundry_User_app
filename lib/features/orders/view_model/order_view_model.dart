@@ -86,4 +86,29 @@ class OrderViewModel extends ChangeNotifier {
     _isLoading = loading;
     notifyListeners();
   }
+
+  // Cancel an order with a reason
+  Future<bool> cancelOrder(int orderId, String reason) async {
+    _setLoading(true);
+    _error = null;
+    
+    try {
+      final success = await _orderApiService.cancelOrder(orderId, reason);
+      if (success) {
+        // Update the order status in the local list
+        final index = _orders.indexWhere((order) => order.id == orderId);
+        if (index != -1) {
+          _orders[index] = _orders[index].copyWith(status: OrderStatus.cancelled);
+          notifyListeners();
+        }
+      }
+      return success;
+    } catch (e) {
+      _error = 'Failed to cancel order: ${e.toString()}';
+      debugPrint(_error);
+      rethrow;
+    } finally {
+      _setLoading(false);
+    }
+  }
 }

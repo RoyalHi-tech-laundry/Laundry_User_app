@@ -122,6 +122,27 @@ class Order {
   String get formattedCreatedDate {
     return '${createdAt.day}/${createdAt.month}/${createdAt.year}';
   }
+
+  // Create a copy of the order with updated fields
+  Order copyWith({
+    int? id,
+    String? orderNumber,
+    OrderStatus? status,
+    DateTime? pickupDate,
+    String? pickupTimeSlot,
+    double? totalAmount,
+    DateTime? createdAt,
+  }) {
+    return Order(
+      id: id ?? this.id,
+      orderNumber: orderNumber ?? this.orderNumber,
+      status: status ?? this.status,
+      pickupDate: pickupDate ?? this.pickupDate,
+      pickupTimeSlot: pickupTimeSlot ?? this.pickupTimeSlot,
+      totalAmount: totalAmount ?? this.totalAmount,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }
 
 class Pagination {

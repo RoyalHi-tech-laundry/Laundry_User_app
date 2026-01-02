@@ -145,4 +145,41 @@ class OrderApiService {
       }
     });
   }
+
+  // Cancel an order with a reason
+  Future<bool> cancelOrder(int orderId, String reason) async {
+    final url = '/api/users/order/$orderId/cancel';
+    debugPrint('\n📡 API Request:');
+    debugPrint('URL: $baseUrl$url');
+    debugPrint('Reason: $reason');
+    
+    try {
+      final headers = await _getHeaders();
+      debugPrint('🔑 Headers: $headers');
+      
+      final response = await http.put(
+        Uri.parse('$baseUrl$url'),
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'reason': reason}),
+      );
+      
+      debugPrint('\n📡 API Response:');
+      debugPrint('Status: ${response.statusCode}');
+      debugPrint('Body: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        return jsonResponse['success'] == true;
+      } else {
+        debugPrint('🔴 Error: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to cancel order: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('🔴 Exception: ${e.toString()}');
+      rethrow;
+    }
+  }
 }
