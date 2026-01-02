@@ -142,8 +142,10 @@ class _AddressListScreenState extends State<AddressListScreen> {
 
   Widget _buildAddNewAddressButton() {
     return InkWell(
-      onTap: () {
-        _viewModel.navigateToAddressSelectionScreen(context);
+      onTap: () async {
+        await _viewModel.navigateToAddressSelectionScreen(context);
+        // Refresh the UI after returning from adding address
+        setState(() {});
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
@@ -247,8 +249,9 @@ class _AddressListScreenState extends State<AddressListScreen> {
           ),
           const SizedBox(height: 32),
           ElevatedButton.icon(
-            onPressed: () {
-              _viewModel.navigateToAddressSelectionScreen(context);
+            onPressed: () async {
+              await _viewModel.navigateToAddressSelectionScreen(context);
+              setState(() {});
             },
             icon: const Icon(Icons.add_location_alt_rounded),
             label: const Text('Add New Address'),
@@ -308,46 +311,10 @@ class _AddressListScreenState extends State<AddressListScreen> {
       ),
       direction: DismissDirection.endToStart,
       confirmDismiss: (direction) async {
-        return await showDialog<bool>(
-              context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: const Text('Delete Address'),
-                  content: const Text('Are you sure you want to delete this address?'),
-                  actions: <Widget>[
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: const Text('CANCEL'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(true),
-                      child: const Text('DELETE'),
-                    ),
-                  ],
-                );
-              },
-            ) ??
-            false;
+        return await _showDeleteConfirmationDialog();
       },
       onDismissed: (direction) async {
-        final success = await _viewModel.deleteAddress(address.id);
-
-        if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Address deleted successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(_viewModel.error ?? 'Failed to delete address'),
-              backgroundColor: Colors.red,
-            ),
-          );
-          _loadAddresses();
-        }
+        await _performDelete(address);
       },
       child: InkWell(
         onTap: () {
@@ -505,11 +472,14 @@ class _AddressListScreenState extends State<AddressListScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                onSelected: (value) {
+                onSelected: (value) async {
                   if (value == 'edit') {
                     // TODO: edit
                   } else if (value == 'delete') {
-                    _showDeleteConfirmation(address);
+                    final confirmed = await _showDeleteConfirmationDialog();
+                    if (confirmed) {
+                       await _performDelete(address);
+                    }
                   } else if (value == 'share') {
                     // TODO: share
                   }
@@ -560,8 +530,8 @@ class _AddressListScreenState extends State<AddressListScreen> {
     );
   }
 
-  void _showDeleteConfirmation(AddressItem address) {
-    showDialog(
+  Future<bool> _showDeleteConfirmationDialog() async {
+    return await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -578,7 +548,7 @@ class _AddressListScreenState extends State<AddressListScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             style: TextButton.styleFrom(
               foregroundColor: Colors.grey[700],
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -586,52 +556,7 @@ class _AddressListScreenState extends State<AddressListScreen> {
             child: Text('Cancel', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
           ),
           ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              // Show loading indicator
-              setState(() {});
-              
-              // Delete the address
-              final success = await _viewModel.deleteAddress(address.id);
-              
-              // Force UI refresh regardless of success/failure
-              setState(() {});
-              
-              if (success) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Row(
-                        children: [
-                          Icon(Icons.check_circle_outline, color: Colors.white),
-                          SizedBox(width: 16),
-                          Text('Address deleted successfully'),
-                        ],
-                      ),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              } else {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Row(
-                        children: [
-                          const Icon(Icons.error_outline, color: Colors.white),
-                          SizedBox(width: 16),
-                          Text(_viewModel.error ?? 'Failed to delete address'),
-                        ],
-                      ),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  
-                  // Reload addresses if deletion failed to ensure UI is in sync
-                  await _loadAddresses();
-                }
-              }
-            },
+            onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
@@ -641,6 +566,48 @@ class _AddressListScreenState extends State<AddressListScreen> {
           ),
         ],
       ),
-    );
+    ) ?? false;
+  }
+
+  Future<void> _performDelete(AddressItem address) async {
+    // Show loading logic could be added here if needed, but handled by ViewMode generally or just toast
+    
+    final success = await _viewModel.deleteAddress(address.id);
+    // Force UI refresh
+    setState(() {});
+    
+    if (success) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle_outline, color: Colors.white),
+                SizedBox(width: 16),
+                Text('Address deleted successfully'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                SizedBox(width: 16),
+                Text(_viewModel.error ?? 'Failed to delete address'),
+              ],
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        // Reload addresses to ensure UI is in sync
+        _loadAddresses();
+      }
+    }
   }
 }

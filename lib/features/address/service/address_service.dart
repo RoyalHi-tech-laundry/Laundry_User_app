@@ -113,9 +113,22 @@ class AddressService {
         if (response.statusCode == 200 || response.statusCode == 204) {
           // Parse response if it has content
           if (response.body.isNotEmpty) {
-            final result = jsonDecode(response.body);
-            debugPrint('🟢 Address deleted successfully: $result');
-            return result;
+            final dynamic decoded = jsonDecode(response.body);
+            if (decoded is Map<String, dynamic>) {
+              final result = Map<String, dynamic>.from(decoded);
+              if (!result.containsKey('success')) {
+                result['success'] = true;
+              }
+              debugPrint('🟢 Address deleted successfully: $result');
+              return result;
+            } else {
+               // Fallback if response is not a map (e.g. integer or list)
+               return {
+                'success': true,
+                'message': 'Address deleted successfully',
+                'data': decoded
+              };
+            }
           } else {
             // Return a success message if no content
             debugPrint('🟢 Address deleted successfully (no content)');

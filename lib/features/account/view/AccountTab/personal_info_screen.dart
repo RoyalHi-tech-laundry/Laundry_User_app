@@ -3,6 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../constants/colors/app_colors.dart';
 import '../../../../services/auth_storage_service.dart';
+import '../../../../services/auth_storage_service.dart';
+import '../../services/account_service.dart';
+import 'package:intl/intl.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
   const PersonalInfoScreen({Key? key}) : super(key: key);
@@ -24,6 +27,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   bool _isLoading = false;
   String _selectedGender = "Female";
   final bool isPhoneVerified = true;
+  final AccountService _accountService = AccountService();
 
   @override
   void initState() {
@@ -43,6 +47,16 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           _userNameController.text = userData['name'] ?? '';
           _phoneController.text = userData['phone'] ?? '';
           _emailController.text = userData['email'] ?? '';
+          _dateOfBirthController.text = userData['dateOfBirth'] ?? '';
+          
+          if (userData['gender'] != null && userData['gender'].isNotEmpty) {
+            String loadedGender = userData['gender'];
+            // Normalize gender string (e.g. "MALE" -> "Male")
+            if (loadedGender.toUpperCase() == 'MALE') _selectedGender = 'Male';
+            else if (loadedGender.toUpperCase() == 'FEMALE') _selectedGender = 'Female';
+            else if (loadedGender.toUpperCase() == 'OTHER') _selectedGender = 'Other';
+            else _selectedGender = loadedGender; 
+          }
           _isLoading = false;
         });
       }
@@ -101,53 +115,85 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
               key: _formKey,
               child: SingleChildScrollView(
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                _buildEditableField(
-                  label: 'User Name *',
-                  controller: _userNameController,
-                  icon: Icons.person_outline,
-                  enabled: _isEditMode,
-                ),
-                const SizedBox(height: 16),
-                _buildEditablePhoneField(
-                  label: 'Phone Number *',
-                  controller: _phoneController,
-                  enabled: _isEditMode,
-                  isVerified: isPhoneVerified,
-                ),
-                const SizedBox(height: 16),
-                _buildEditableField(
-                  label: 'Email Id',
-                  controller: _emailController,
-                  icon: Icons.email_outlined,
-                  enabled: _isEditMode,
-                  placeholder: 'Email Id',
-                ),
-                const SizedBox(height: 16),
-                _buildDateField(
-                  label: 'Date of Birth',
-                  controller: _dateOfBirthController,
-                  enabled: _isEditMode,
-                ),
-                const SizedBox(height: 16),
-                _buildGenderField(
-                  label: 'Gender',
-                  selectedGender: _selectedGender,
-                  enabled: _isEditMode,
-                ),
-                const SizedBox(height: 40),
-                if (!_isEditMode) _buildDeleteAccountButton(),
-                const SizedBox(height: 24),
-                _buildActionButton(),
+                      _buildEditableField(
+                        label: 'User Name *',
+                        controller: _userNameController,
+                        icon: Icons.person_outline,
+                        enabled: _isEditMode,
+                      ),
+                      const SizedBox(height: 20),
+                      _buildEditablePhoneField(
+                        label: 'Phone Number *',
+                        controller: _phoneController,
+                        enabled: _isEditMode,
+                        isVerified: isPhoneVerified,
+                      ),
+                      const SizedBox(height: 20),
+                      _buildEditableField(
+                        label: 'Email Id',
+                        controller: _emailController,
+                        icon: Icons.email_outlined,
+                        enabled: _isEditMode,
+                        placeholder: 'Email Id',
+                      ),
+                      const SizedBox(height: 20),
+                      _buildDateField(
+                        label: 'Date of Birth',
+                        controller: _dateOfBirthController,
+                        enabled: _isEditMode,
+                      ),
+                      const SizedBox(height: 20),
+                      _buildGenderField(
+                        label: 'Gender',
+                        selectedGender: _selectedGender,
+                        enabled: _isEditMode,
+                      ),
+                      const SizedBox(height: 48),
+                      if (!_isEditMode) _buildDeleteAccountButton(),
+                      const SizedBox(height: 32),
+                      _buildActionButton(),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
               ),
             ),
     );
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppColors.primaryLightColor, // Header background color
+              onPrimary: Colors.white, // Header text color
+              onSurface: Colors.black, // Body text color
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primaryLightColor, // Button text color
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        _dateOfBirthController.text = DateFormat('yyyy-MM-dd').format(picked);
+      });
+    }
   }
 
   Widget _buildEditableField({
@@ -166,39 +212,46 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           style: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: Colors.grey[600],
+            color: Colors.grey[700],
           ),
         ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: enabled ? Colors.white : Colors.grey[100],
-            borderRadius: BorderRadius.circular(8),
-            border: enabled ? Border.all(color: Colors.grey[300]!) : null,
+            color: enabled ? Colors.white : Colors.grey[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: enabled ? Colors.grey[300]! : Colors.transparent),
+            boxShadow: enabled ? [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ] : null,
           ),
           child: TextFormField(
             controller: controller,
             enabled: enabled,
             keyboardType: keyboardType,
             style: GoogleFonts.poppins(
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.w400,
               color: Colors.black87,
             ),
             decoration: InputDecoration(
               hintText: placeholder,
               hintStyle: GoogleFonts.poppins(
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FontWeight.w400,
                 color: Colors.grey[400],
               ),
               prefixIcon: icon != null ? Icon(
                 icon,
-                color: Colors.grey[500],
+                color: enabled ? AppColors.primaryLightColor.withOpacity(0.7) : Colors.grey[400],
                 size: 20,
               ) : null,
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             validator: (value) {
               if (label.contains('*') && (value == null || value.isEmpty)) {
@@ -231,53 +284,62 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           style: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: Colors.grey[600],
+            color: Colors.grey[700],
           ),
         ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: enabled ? Colors.white : Colors.grey[100],
-            borderRadius: BorderRadius.circular(8),
-            border: enabled ? Border.all(color: Colors.grey[300]!) : null,
+            color: enabled ? Colors.white : Colors.grey[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: enabled ? Colors.grey[300]! : Colors.transparent),
+            boxShadow: enabled ? [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ] : null,
           ),
           child: TextFormField(
             controller: controller,
             enabled: enabled,
             keyboardType: TextInputType.phone,
             style: GoogleFonts.poppins(
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.w400,
               color: Colors.black87,
             ),
             decoration: InputDecoration(
               prefixIcon: Icon(
                 Icons.phone_outlined,
-                color: Colors.grey[500],
+                color: enabled ? AppColors.primaryLightColor.withOpacity(0.7) : Colors.grey[400],
                 size: 20,
               ),
-              suffixIcon: isVerified ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Verified',
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.successColor,
+              suffixIcon: isVerified ? Padding(
+                padding: const EdgeInsets.only(right: 12.0),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Verified',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.successColor,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.check_circle_outline,
-                    color: AppColors.successColor,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 16),
-                ],
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.check_circle_outline,
+                      color: AppColors.successColor,
+                      size: 16,
+                    ),
+                  ],
+                ),
               ) : null,
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -333,38 +395,50 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           style: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: Colors.grey[600],
+            color: Colors.grey[700],
           ),
         ),
         const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: enabled ? Colors.white : Colors.grey[100],
-            borderRadius: BorderRadius.circular(8),
-            border: enabled ? Border.all(color: Colors.grey[300]!) : null,
-          ),
-          child: TextFormField(
-            controller: controller,
-            enabled: enabled,
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.w400,
-              color: Colors.black87,
+        GestureDetector(
+          onTap: enabled ? () => _selectDate(context) : null,
+          child: Container(
+            decoration: BoxDecoration(
+              color: enabled ? Colors.white : Colors.grey[50],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: enabled ? Colors.grey[300]! : Colors.transparent),
+              boxShadow: enabled ? [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ] : null,
             ),
-            decoration: InputDecoration(
-              hintText: 'DD/MM/YYYY',
-              hintStyle: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-                color: Colors.grey[400],
+            child: AbsorbPointer(
+              child: TextFormField(
+                controller: controller,
+                enabled: enabled,
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.black87,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'YYYY-MM-DD',
+                  hintStyle: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.grey[400],
+                  ),
+                  prefixIcon: Icon(
+                    Icons.calendar_today_outlined,
+                    color: enabled ? AppColors.primaryLightColor.withOpacity(0.7) : Colors.grey[400],
+                    size: 20,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                ),
               ),
-              prefixIcon: Icon(
-                Icons.calendar_today_outlined,
-                color: Colors.grey[500],
-                size: 20,
-              ),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             ),
           ),
         ),
@@ -385,49 +459,71 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           style: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: Colors.grey[600],
+            color: Colors.grey[700],
           ),
         ),
         const SizedBox(height: 8),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          height: 56, // Fixed height to match other fields
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: enabled ? Colors.white : Colors.grey[100],
-            borderRadius: BorderRadius.circular(8),
-            border: enabled ? Border.all(color: Colors.grey[300]!) : null,
+            color: enabled ? Colors.white : Colors.grey[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: enabled ? Colors.grey[300]! : Colors.transparent),
+            boxShadow: enabled ? [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ] : null,
           ),
-          child: enabled ? DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: selectedGender,
-              items: ['Male', 'Female', 'Other'].map((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(
-                    value,
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.black87,
-                    ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.person_outline, // Added icon for consistency
+                color: enabled ? AppColors.primaryLightColor.withOpacity(0.7) : Colors.grey[400],
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: enabled ? DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: selectedGender,
+                    isExpanded: true,
+                    icon: Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey[600]),
+                    items: ['Male', 'Female', 'Other'].map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(
+                          value,
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w400,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      if (newValue != null) {
+                        setState(() {
+                          _selectedGender = newValue;
+                        });
+                      }
+                    },
                   ),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                if (newValue != null) {
-                  setState(() {
-                    _selectedGender = newValue;
-                  });
-                }
-              },
-            ),
-          ) : Text(
-            selectedGender,
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.w400,
-              color: Colors.black87,
-            ),
+                ) : Text(
+                  selectedGender,
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -542,6 +638,14 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       });
 
       try {
+        // Call API to update profile
+        await _accountService.updateProfile(
+          name: _userNameController.text.trim(),
+          email: _emailController.text.trim(),
+          dateOfBirth: _dateOfBirthController.text.trim(),
+          gender: _selectedGender.toUpperCase(),
+        );
+
         // Get the current user data
         final userData = await AuthStorageService.getUserDetails();
         
@@ -552,6 +656,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           phone: _phoneController.text.trim(),
           email: _emailController.text.trim(),
           role: userData['role'] ?? 'user',
+          dateOfBirth: _dateOfBirthController.text.trim(),
+          gender: _selectedGender,
         );
         
         // Update UI state
@@ -571,16 +677,18 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         });
 
         // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Failed to update personal information. Please try again.',
-              style: GoogleFonts.poppins(color: Colors.white),
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Failed to update personal information: ${e.toString().replaceAll("Exception: ", "")}',
+                style: GoogleFonts.poppins(color: Colors.white),
+              ),
+              backgroundColor: AppColors.errorColor,
+              duration: const Duration(seconds: 3),
             ),
-            backgroundColor: AppColors.errorColor,
-            duration: const Duration(seconds: 3),
-          ),
-        );
+          );
+        }
       }
     }
   }

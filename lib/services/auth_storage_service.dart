@@ -8,6 +8,8 @@ class AuthStorageService {
   static const String _userPhoneKey = 'user_phone';
   static const String _userEmailKey = 'user_email';
   static const String _userRoleKey = 'user_role';
+  static const String _userDobKey = 'user_dob';
+  static const String _userGenderKey = 'user_gender';
   static const String _lastSelectedAddressKey = 'last_selected_address';
 
   // Save token to SharedPreferences
@@ -53,6 +55,8 @@ class AuthStorageService {
     required String phone,
     required String email,
     required String role,
+     String? dateOfBirth,
+     String? gender,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_userIdKey, id);
@@ -60,6 +64,8 @@ class AuthStorageService {
     await prefs.setString(_userPhoneKey, phone);
     await prefs.setString(_userEmailKey, email);
     await prefs.setString(_userRoleKey, role);
+    if (dateOfBirth != null) await prefs.setString(_userDobKey, dateOfBirth);
+    if (gender != null) await prefs.setString(_userGenderKey, gender);
   }
 
   // Get user details from SharedPreferences
@@ -71,6 +77,8 @@ class AuthStorageService {
       'phone': prefs.getString(_userPhoneKey) ?? '',
       'email': prefs.getString(_userEmailKey) ?? '',
       'role': prefs.getString(_userRoleKey) ?? '',
+      'dateOfBirth': prefs.getString(_userDobKey) ?? '',
+      'gender': prefs.getString(_userGenderKey) ?? '',
     };
   }
 
@@ -83,6 +91,8 @@ class AuthStorageService {
     await prefs.remove(_userPhoneKey);
     await prefs.remove(_userEmailKey);
     await prefs.remove(_userRoleKey);
+    await prefs.remove(_userDobKey);
+    await prefs.remove(_userGenderKey);
     await prefs.remove(_lastSelectedAddressKey);
   }
 
