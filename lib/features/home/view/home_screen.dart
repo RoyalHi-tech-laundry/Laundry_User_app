@@ -5,6 +5,7 @@ import 'package:laun_easy/features/home/view_model/home_viewmodel.dart';
 import 'package:laun_easy/utils/app_router.dart';
 import 'package:laun_easy/core/widgets/drawer_menu.dart';
 import 'package:shimmer/shimmer.dart';
+import '../../notifications/view/notification_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -69,8 +70,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     return address.fullAddress ?? 'Unknown';
   }
 
-  // State for the selected service popup
-  Map<String, dynamic>? _selectedServiceData;
+
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +113,14 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
         ),
         actions: [
           IconButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationScreen(),
+                ),
+              );
+            },
             icon: const Icon(Icons.notifications_outlined, color: Colors.white),
           ),
           Builder(
@@ -150,130 +157,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     );
   }
 
-  Widget _buildServiceDetailsPanel() {
-    final data = _selectedServiceData!;
-    return Container(
-      margin: const EdgeInsets.only(top: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE3F2FD), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF2196F3).withOpacity(0.08),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-            spreadRadius: 0,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFFF5F9FF),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  data['icon'] as IconData,
-                  size: 20,
-                  color: const Color(0xFF1976D2),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    data['title'] as String,
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF0D47A1),
-                    ),
-                  ),
-                ),
-                InkWell(
-                  onTap: () {
-                    setState(() {
-                      _selectedServiceData = null;
-                    });
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.blue[100]!),
-                    ),
-                    child: Icon(Icons.close, size: 16, color: Colors.blue[300]),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Body
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  data['description'] as String,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: const Color(0xFF546E7A),
-                    height: 1.6,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 44,
-                  child: ElevatedButton(
-                    onPressed: () {
-                       setState(() {
-                         _selectedServiceData = null;
-                       });
-                       // TODO: Navigation to specific booking flow
-                       ScaffoldMessenger.of(context).showSnackBar(
-                         SnackBar(content: Text('Starting booking for ${data['title']}...'))
-                       );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2196F3), // Primary Blue
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.calendar_today_outlined, size: 18, color: Colors.white),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Book This Service',
-                          style: GoogleFonts.poppins(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.05, end: 0, duration: 300.ms, curve: Curves.easeOut);
-  }
+
 
   Widget _buildHeader() {
     return Container(
@@ -400,40 +284,166 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                       icon: _getIconData(service.icon),
                       title: service.name,
                       onTap: () {
-                        // If clicking same service, toggle it off. Else open it.
-                        if (_selectedServiceData != null && _selectedServiceData!['title'] == service.name) {
-                          setState(() {
-                             _selectedServiceData = null;
-                          });
-                        } else {
-                          _showServiceDetails(service.name, service.description, _getIconData(service.icon));
-                        }
+                        _showServiceDetails(service.name, service.description, _getIconData(service.icon));
                       },
                     );
                   },
                 ),
         ),
         
-        // Inline Details Panel with Animation
-        AnimatedSize(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOutQuart,
-          child: _selectedServiceData != null 
-             ? _buildServiceDetailsPanel()
-             : const SizedBox.shrink(),
-        ),
+
       ],
     );
   }
 
   void _showServiceDetails(String title, String description, IconData icon) {
-     setState(() {
-       _selectedServiceData = {
-         'title': title,
-         'description': description.isNotEmpty ? description : "Experience our premium ${title.toLowerCase()} service.",
-         'icon': icon,
-       };
-     });
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Stack(
+        children: [
+          // Main bottom sheet content
+          Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            margin: const EdgeInsets.only(top: 50), // Space for close button
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top handle indicator
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                
+                // Header with icon (no close button here)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          icon,
+                          size: 24,
+                          color: const Color(0xFF2196F3),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Divider
+                Divider(height: 1, color: Colors.grey[200]),
+                
+                // Description
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    description.isNotEmpty ? description : "Experience our premium ${title.toLowerCase()} service.",
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: Colors.grey[700],
+                      height: 1.6,
+                    ),
+                  ),
+                ),
+                
+                // Book button
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        // TODO: Navigation to specific booking flow
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Starting booking for $title...'))
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2196F3),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Book This Service',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Close button positioned outside the card
+          Positioned(
+            top: 8,
+            right: 20,
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.close,
+                  size: 20,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
   
   // Helper method to convert icon string to IconData
