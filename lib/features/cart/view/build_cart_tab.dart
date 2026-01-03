@@ -47,20 +47,10 @@ class BuildCartTab extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 8),
-              Center(
-                child: Text(
-                  'Build your laundry cart',
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-              ).animate().fadeIn(duration: 300.ms),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Expanded(
                 child: ListView.builder(
+                  padding: const EdgeInsets.only(top: 4),
                   itemCount: cartViewModel.services.length,
                   itemBuilder: (context, index) {
                     final service = cartViewModel.services[index];
@@ -87,172 +77,158 @@ class BuildCartTab extends StatelessWidget {
 
     return Container(
       key: ValueKey('service-${service.id}'),
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: isSelected ? const Color(0xFF2196F3).withOpacity(0.15) : Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-            spreadRadius: isSelected ? 2 : 0,
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isSelected ? const Color(0xFF2196F3) : Colors.grey.shade100,
-          width: isSelected ? 2 : 1,
+          color: isSelected ? AppColors.primaryColor : Colors.grey.shade200,
+          width: 1.2,
         ),
+        boxShadow: [
+          if (isSelected)
+            BoxShadow(
+              color: AppColors.primaryColor.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+        ],
       ),
       child: InkWell(
         onTap: () => cartViewModel.toggleServiceSelection(service),
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Service icon with container
-              Container(
-                width: 70,
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFFE3F2FD) : const Color(0xFFF5F5F5),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 5,
-                      offset: const Offset(0, 2),
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Service Icon
+                  Container(
+                    width: 60,
+                    height: 60,
+                    padding: const EdgeInsets.all(6),
+                    child: Icon(
+                      _getServiceIcon(service.icon),
+                      size: 32,
+                      color: isSelected ? AppColors.primaryDarkColor : AppColors.primaryColor.withOpacity(0.7),
                     ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFF2196F3) : Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: isSelected ? Colors.blue.withOpacity(0.3) : Colors.black.withOpacity(0.05),
-                            blurRadius: 5,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        _getServiceIcon(service.icon),
-                        size: 22,
-                        color: isSelected ? Colors.white : const Color(0xFF2196F3),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '₹${service.price}',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: isSelected ? const Color(0xFF2196F3) : Colors.black87,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              
-              // Service details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                  ),
+                  const SizedBox(width: 12),
+                  
+                  // Service info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           service.name,
                           style: GoogleFonts.poppins(
                             fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        if (isSelected)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2196F3),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              'SELECTED',
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(Icons.local_offer_outlined, size: 12, color: Colors.grey[400]),
+                            const SizedBox(width: 4),
+                            Text(
+                              '₹${service.price.toStringAsFixed(0)}/${service.unit} onwards',
                               style: GoogleFonts.poppins(
-                                fontSize: 10,
+                                fontSize: 12,
+                                color: Colors.grey[600],
                                 fontWeight: FontWeight.w500,
-                                color: Colors.white,
                               ),
                             ),
-                          ),
-                        const Spacer(),
-                        // Square Checkbox
-                        InkWell(
-                          onTap: () => cartViewModel.toggleServiceSelection(service),
-                          borderRadius: BorderRadius.circular(4),
-                          child: Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.rectangle,
-                              borderRadius: BorderRadius.circular(4),
-                              color: isSelected ? const Color(0xFF2196F3) : Colors.white,
-                              border: isSelected ? null : Border.all(color: Colors.grey.shade300),
+                            const SizedBox(width: 12),
+                            Icon(Icons.access_time, size: 12, color: Colors.grey[400]),
+                            const SizedBox(width: 4),
+                            Text(
+                              service.turnaroundTime,
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                            child: isSelected
-                                ? const Icon(
-                                    Icons.check,
-                                    size: 16,
-                                    color: Colors.white,
-                                  )
-                                : null,
-                          ),
+                          ],
                         ),
+                        const SizedBox(height: 10),
+                        // Bullet points for description
+                        ..._buildDescriptionBullets(service.description),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      service.description,
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                        height: 1.4,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        _buildServiceDetail(
-                          Icons.access_time,
-                          service.turnaroundTime,
-                        ),
-                        const SizedBox(width: 16),
-                        _buildServiceDetail(
-                          Icons.shopping_bag,
-                          'Per ${service.unit}',
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
               ),
-            ],
-          ),
+            ),
+            
+            // Selection indicator (Square Checkbox)
+            Positioned(
+              right: 12,
+              top: 12,
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  color: isSelected ? AppColors.primaryColor : Colors.white,
+                  border: Border.all(
+                    color: isSelected ? AppColors.primaryColor : Colors.grey.shade300,
+                  ),
+                ),
+                child: isSelected
+                    ? const Icon(Icons.check, size: 16, color: Colors.white)
+                    : null,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+
+  List<Widget> _buildDescriptionBullets(String description) {
+    if (description.isEmpty) return [];
+    
+    final points = description.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    
+    return points.map((point) => Padding(
+      padding: const EdgeInsets.only(bottom: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 5),
+            child: Container(
+              width: 3,
+              height: 3,
+              decoration: const BoxDecoration(
+                color: Colors.grey,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              point,
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: Colors.grey[500],
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ),
+        ],
+      ),
+    )).toList();
+  }
+
 
   IconData _getServiceIcon(String? iconName) {
     // Try to parse the icon name from the API
