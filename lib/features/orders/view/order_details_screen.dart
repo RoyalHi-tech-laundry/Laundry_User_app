@@ -125,10 +125,13 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildOrderSummaryParams(order),
-                _buildAddressSection(order),
+                _buildStatusHistoryTimeline(order),
                 const SizedBox(height: 16),
-                _buildBillDetails(order),
-                const SizedBox(height: 16),
+                // Only show bill details if status is NOT pending or confirmed
+                if (order.status != OrderStatus.pending && order.status != OrderStatus.confirmed)
+                  _buildBillDetails(order),
+                if (order.status != OrderStatus.pending && order.status != OrderStatus.confirmed)
+                  const SizedBox(height: 16),
                 _buildOrderInfoFooter(order),
               ],
             ),
@@ -194,77 +197,133 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       );
   }
 
-  Widget _buildAddressSection(Order order) {
-    // Handling generic address object if dynamic
-    String addressLine = 'Address details not available';
-    String city = '';
+  Widget _buildStatusHistoryTimeline(Order order) {
+    final statusHistory = order.statusHistory ?? [];
     
-    if (order.address != null) {
-      if (order.address is Map) {
-         addressLine = "${order.address['addressLine1'] ?? ''}, ${order.address['addressLine2'] ?? ''}";
-         city = "${order.address['city'] ?? ''} - ${order.address['pincode'] ?? ''}";
-      }
+    if (statusHistory.isEmpty) {
+      return Container(
+        margin: const EdgeInsets.only(top: 1),
+        padding: const EdgeInsets.all(20),
+        color: Colors.white,
+        child: Center(
+          child: Text(
+            'No status history available',
+            style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 14),
+          ),
+        ),
+      );
     }
 
     return Container(
       margin: const EdgeInsets.only(top: 1),
       padding: const EdgeInsets.all(20),
       color: Colors.white,
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            children: [
-               const Icon(Icons.storefront, size: 24, color: Colors.black87), // Store Icon
-               Container(
-                 width: 1, 
-                 height: 30, 
-                 color: Colors.grey[300], 
-                 margin: const EdgeInsets.symmetric(vertical: 4)
-               ),
-               const Icon(Icons.location_on_outlined, size: 24, color: Colors.black87), // User Location Icon
-            ],
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Store Address (Static for now as laundry service usually single/few points)
-                Text(
-                  'Laundry Service',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16),
-                ),
-                Text(
-                  'Main Branch, City Center',
-                  style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 12),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 32), // Space for connector line visual alignment
-                // User Address
-                Text(
-                  'Delivery Address',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16),
-                ),
-                Text(
-                  addressLine,
-                  style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 12),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (city.isNotEmpty)
-                  Text(
-                    city,
-                    style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 12),
-                  ),
-              ],
+          Text(
+            'Order Timeline',
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              color: Colors.black87,
             ),
           ),
+          const SizedBox(height: 20),
+          ...statusHistory.asMap().entries.map((entry) {
+            final index = entry.key;
+            final history = entry.value;
+            final isLast = index == statusHistory.length - 1;
+            
+            return _buildTimelineNode(
+              history: history,
+              isLast: isLast,
+            );
+          }).toList(),
         ],
       ),
     );
   }
+
+  Widget _buildTimelineNode({
+    required StatusHistory history,
+    required bool isLast,
+  }) {
+    final statusColor = Color(history.statusColor as int);
+    final statusBgColor = Color(history.statusBackgroundColor as int);
+    final statusIcon = history.statusIcon as IconData;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Timeline indicator
+        Column(
+          children: [
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: statusBgColor,
+                shape: BoxShape.circle,
+                border: Border.all(color: statusColor, width: 2),
+              ),
+              child: Icon(
+                statusIcon,
+                size: 14,
+                color: statusColor,
+              ),
+            ),
+            if (!isLast)
+              Container(
+                width: 2,
+                height: 50,
+                color: Colors.grey[300],
+                margin: const EdgeInsets.symmetric(vertical: 4),
+              ),
+          ],
+        ),
+        const SizedBox(width: 16),
+        // Status info
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                history.statusDisplay,
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                DateFormat('MMM d, yyyy • h:mm a').format(history.createdAt),
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+              if (history.notes != null && history.notes!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    history.notes!,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.grey[500],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              if (!isLast) const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
 
   Widget _buildBillDetails(Order order) {
     final items = order.items ?? [];

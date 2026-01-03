@@ -302,6 +302,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Stack(
+        alignment: Alignment.topCenter,
         children: [
           // Main bottom sheet content
           Container(
@@ -414,10 +415,9 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
             ),
           ),
           
-          // Close button positioned outside the card
-          Positioned(
-            top: 8,
-            right: 20,
+          // Close button positioned at top center
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
             child: GestureDetector(
               onTap: () => Navigator.pop(context),
               child: Container(
