@@ -92,14 +92,14 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with SingleTick
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(24),
+                              padding: const EdgeInsets.all(16),
                               decoration: const BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: Color(0xFFE8F5E9),
                               ),
                               child: const Icon(
                                 Icons.check_circle_outline,
-                                size: 64,
+                                size: 48,
                                 color: Color(0xFF38B000),
                               ),
                             ),
@@ -160,33 +160,24 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with SingleTick
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.all(16),
+                                  padding: const EdgeInsets.all(12),
                                   decoration: const BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: Color(0xFFFEEBEE),
                                   ),
                                   child: const Icon(
-                                    Icons.error_outline,
-                                    size: 48,
+                                    Icons.close,
+                                    size: 32,
                                     color: Color(0xFFE53935),
                                   ),
                                 ),
                                 const SizedBox(height: 20),
                                 Text(
-                                  'Error',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFFE53935),
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
                                   dialogErrorMessage ??
                                       'Failed to cancel order',
                                   style: GoogleFonts.poppins(
-                                    fontSize: 14,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
                                     color: const Color(0xFF495057),
                                   ),
                                   textAlign: TextAlign.center,
@@ -269,14 +260,14 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with SingleTick
                                     Column(
                                       children: [
                                         Container(
-                                          padding: const EdgeInsets.all(12),
+                                          padding: const EdgeInsets.all(10),
                                           decoration: const BoxDecoration(
                                             shape: BoxShape.circle,
                                             color: Color(0xFFFFE3E3),
                                           ),
                                           child: const Icon(
                                             Icons.cancel_outlined,
-                                            size: 40,
+                                            size: 32,
                                             color: Color(0xFFE63946),
                                           ),
                                         ),
@@ -386,14 +377,13 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with SingleTick
                                                               'Failed to cancel order';
                                                         });
                                                       }
-                                                    } catch (e) {
-                                                      setDialogState(() {
-                                                        dialogHasError = true;
-                                                        dialogLoading = false;
-                                                        dialogErrorMessage =
-                                                            'Error: ${e.toString()}';
-                                                      });
-                                                    }
+                                                      } catch (e) {
+                                                        setDialogState(() {
+                                                          dialogHasError = true;
+                                                          dialogLoading = false;
+                                                          dialogErrorMessage = _viewModel.error ?? e.toString().replaceFirst('Exception: ', '');
+                                                        });
+                                                      }
                                                   }
                                                 },
                                           style: ElevatedButton.styleFrom(

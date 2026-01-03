@@ -104,8 +104,8 @@ class OrderViewModel extends ChangeNotifier {
       }
       return success;
     } catch (e) {
-      _error = 'Failed to cancel order: ${e.toString()}';
-      debugPrint(_error);
+      _error = e.toString().replaceFirst('Exception: ', '');
+      debugPrint('🔴 View Model Error: $_error');
       rethrow;
     } finally {
       _setLoading(false);

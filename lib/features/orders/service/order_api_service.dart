@@ -175,7 +175,16 @@ class OrderApiService {
         return jsonResponse['success'] == true;
       } else {
         debugPrint('🔴 Error: ${response.statusCode} - ${response.body}');
-        throw Exception('Failed to cancel order: ${response.statusCode}');
+        String errorMessage = 'Failed to cancel order';
+        try {
+          final jsonResponse = jsonDecode(response.body);
+          if (jsonResponse['message'] != null) {
+            errorMessage = jsonResponse['message'];
+          }
+        } catch (e) {
+          debugPrint('Could not parse error response: $e');
+        }
+        throw Exception(errorMessage);
       }
     } catch (e) {
       debugPrint('🔴 Exception: ${e.toString()}');
